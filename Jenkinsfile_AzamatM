@@ -1,26 +1,25 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = "summmrak/my-appfinal"
-        REGISTRY = "https://index.docker.io/v1/"
-        DOCKER_CREDENTIALS = "docker-hub-cred-id"
-        GIT_CREDENTIALS = "github-cred-id"
+        DOCKER_HUB_CREDENTIALS = 'docker-hub-cred-id' // твой Docker Hub ID в Jenkins
+        IMAGE_NAME = 'summmrak/my-appfinal'
+        APP_DIR = 'app' // директория с gradlew
     }
+
     options {
-        buildDiscarder(logRotator(numToKeepStr: '10')) // хранить только последние 10 билдов
         timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
+
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']], // всегда main
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [],
+                checkout([$class: 'GitSCM',
+                    branches: [[name: 'main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/sumrak667/final-devops.git',
-                        credentialsId: "${GIT_CREDENTIALS}"
+                        credentialsId: 'github-cred-id'
                     ]]
                 ])
             }
@@ -28,30 +27,44 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './gradlew clean build'
+                dir("${APP_DIR}") {
+                    sh 'chmod +x gradlew'
+                    sh './gradlew clean build'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh './gradlew test'
+                dir("${APP_DIR}") {
+                    sh './gradlew test'
+                }
+            }
+            post {
+                always {
+                    junit "${APP_DIR}/build/test-results/test/*.xml"
+                }
             }
         }
 
         stage('Static Code Analysis') {
             steps {
-                // опционально, включить если используешь Checkstyle или SpotBugs
-                sh './gradlew check'
+                dir("${APP_DIR}") {
+                    sh './gradlew check'
+                }
             }
         }
 
         stage('Docker Build & Push') {
+            when {
+                branch 'main'
+            }
             steps {
                 script {
-                    def versionTag = "${env.BUILD_NUMBER}" // динамический тег
-                    docker.withRegistry(REGISTRY, DOCKER_CREDENTIALS) {
-                        def app = docker.build("${DOCKER_IMAGE}:${versionTag}")
-                        app.push()
+                    def imageTag = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
+                    docker.withRegistry('https://docker.io', "${DOCKER_HUB_CREDENTIALS}") {
+                        sh "docker build -t ${imageTag} -f Dockerfile_AzamatM ."
+                        sh "docker push ${imageTag}"
                     }
                 }
             }
@@ -59,27 +72,22 @@ pipeline {
 
         stage('Deploy') {
             when {
-                branch 'main' // деплой только из main
+                branch 'main'
             }
             steps {
-                echo "Deploying application..."
-                // тут можно добавить команду деплоя, например ssh или kubectl
+                echo "Deployment stage: run deployment scripts here"
+                // Можно добавить kubectl, ssh или docker run команды
             }
         }
     }
 
     post {
-        always {
-            archiveArtifacts artifacts: 'app/build/libs/*.jar', allowEmptyArchive: true
-            junit 'app/build/test-results/test/*.xml'
-        }
         success {
-            echo 'Build succeeded!'
-            // можно добавить уведомления в Slack/Email
+            archiveArtifacts artifacts: "${APP_DIR}/build/libs/*.jar", allowEmptyArchive: true
+            echo "Build and Docker push succeeded!"
         }
         failure {
-            echo 'Build failed!'
-            // уведомления о падении
+            echo "Build failed!"
         }
     }
 }
