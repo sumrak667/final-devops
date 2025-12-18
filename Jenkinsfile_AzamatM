@@ -9,7 +9,7 @@ pipeline {
     }
 
     options {
-        skipDefaultCheckout() // Не делать автоматический checkout, делаем вручную
+        skipDefaultCheckout() // Не делать автоматический checkout
         timestamps()          // Время в логах
         ansiColor('xterm')    // Цветные логи
     }
@@ -17,7 +17,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/sumrak667/my-repo.git', credentialsId: "${GIT_CREDENTIALS}"
+                git url: 'https://github.com/sumrak667/final-devops.git', credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
@@ -35,14 +35,15 @@ pipeline {
 
         stage('Static Code Analysis') {
             steps {
-                sh './gradlew check'  // Опционально: Checkstyle, SpotBugs
+                sh './gradlew check'  // Опционально: Checkstyle / SpotBugs
             }
         }
 
         stage('Docker Build & Push') {
             steps {
                 script {
-                    def imageTag = "${env.BUILD_NUMBER}" // динамическая версия по номеру билда
+                    // Динамический тег образа по номеру билда
+                    def imageTag = "${env.BUILD_NUMBER}"
                     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS}") {
                         def appImage = docker.build("${IMAGE_NAME}:${imageTag}")
                         appImage.push()
@@ -53,3 +54,25 @@ pipeline {
 
         stage('Deploy') {
             when {
+                branch 'main'  // Выполняется только на ветке main
+            }
+            steps {
+                echo 'Deploying application...'
+                // Здесь можно добавить команды деплоя (ssh, kubectl и т.д.)
+            }
+        }
+    }
+
+    post {
+        success {
+            archiveArtifacts artifacts: 'build/libs/**/*.jar', allowEmptyArchive: true
+            echo 'Build succeeded!'
+        }
+        failure {
+            echo 'Build failed!'
+        }
+        always {
+            cleanWs() // Очистка рабочей директории
+        }
+    }
+}
