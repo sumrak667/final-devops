@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_CREDENTIALS = 'github-creds'       // ID твоих Git credentials
+        DOCKER_CREDENTIALS = 'docker-creds'     // ID Docker credentials
+        DOCKER_REGISTRY = 'docker.io'           // Docker Hub
+        IMAGE_NAME = 'sumrak667/my-app'         // Имя Docker-образа
+    }
+
+    options {
+        skipDefaultCheckout() // Не делать автоматический checkout, делаем вручную
+        timestamps()          // Время в логах
+        ansiColor('xterm')    // Цветные логи
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/sumrak667/my-repo.git', credentialsId: "${GIT_CREDENTIALS}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew clean build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh './gradlew test'
+            }
+        }
+
+        stage('Static Code Analysis') {
+            steps {
+                sh './gradlew check'  // Опционально: Checkstyle, SpotBugs
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    def imageTag = "${env.BUILD_NUMBER}" // динамическая версия по номеру билда
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS}") {
+                        def appImage = docker.build("${IMAGE_NAME}:${imageTag}")
+                        appImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
