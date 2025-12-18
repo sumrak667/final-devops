@@ -2,10 +2,11 @@
 FROM gradle:8.2-jdk17 AS build
 WORKDIR /app
 
-# COPY исправлено: копируем текущую директорию (в Jenkins это уже app/)
+# Копируем только содержимое текущей папки (в Jenkins это app/)
 COPY --chown=gradle:gradle . .
 
-# Сборка без daemon
+# Делаем gradlew исполняемым и собираем проект без daemon
+RUN chmod +x gradlew
 RUN ./gradlew build --no-daemon
 
 # Stage 2: runtime
@@ -25,5 +26,5 @@ EXPOSE 8080
 # HEALTHCHECK
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Команда запуска приложения
+# Команда запуска приложения (замени на реальное имя jar)
 ENTRYPOINT ["java","-jar","/app/demo-1.0.0.jar"]
