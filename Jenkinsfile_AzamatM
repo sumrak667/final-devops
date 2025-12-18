@@ -2,21 +2,17 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS = 'bfc383d7-09f2-49c0-934d-e1fdf55640be'
-        DOCKER_CREDENTIALS = 'b61eea03-67d9-41ed-bed1-9e921eace337'
-        DOCKER_REGISTRY = 'docker.io'
-        IMAGE_NAME = 'sumrak667/my-app'
-    }
-
-    options {
-        skipDefaultCheckout()
-        timestamps()
+        DOCKER_HUB_CREDENTIALS = 'docker-hub-cred-id' // ID credentials в Jenkins
+        IMAGE_NAME = "summmrak/my-appfinal"
+        IMAGE_TAG = "latest"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/sumrak667/final-devops.git', credentialsId: "${GIT_CREDENTIALS}"
+                git branch: 'main',
+                    url: 'https://github.com/sumrak667/final-devops.git',
+                    credentialsId: 'github-cred-id'
             }
         }
 
@@ -48,36 +44,24 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    def imageTag = "${env.BUILD_NUMBER}"
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS}") {
-                        // Указываем контекст app и имя Dockerfile
-                        def appImage = docker.build("${IMAGE_NAME}:${imageTag}", "app -f Dockerfile_AzamatM")
+                    docker.withRegistry('https://docker.io', DOCKER_HUB_CREDENTIALS) {
+                        def appImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile_AzamatM .")
                         appImage.push()
                     }
                 }
             }
         }
-
-        stage('Deploy') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo 'Deploying application...'
-            }
-        }
     }
 
     post {
+        always {
+            cleanWs()
+        }
         success {
-            archiveArtifacts artifacts: 'app/build/libs/**/*.jar', allowEmptyArchive: true
-            echo 'Build succeeded!'
+            echo 'Build, test and Docker push successful!'
         }
         failure {
             echo 'Build failed!'
-        }
-        always {
-            cleanWs()
         }
     }
 }
