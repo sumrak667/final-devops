@@ -1,8 +1,7 @@
 node_modules/
 dist/
+build/
+target/
 .env
-
 logs/
 *.log
-
-build/
