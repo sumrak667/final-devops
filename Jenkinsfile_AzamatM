@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_CREDENTIALS = 'docker-hub-cred-id' // ID credentials в Jenkins
         IMAGE_NAME = "summmrak/my-appfinal"
         IMAGE_TAG = "latest"
     }
@@ -10,9 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/sumrak667/final-devops.git',
-                    credentialsId: 'github-cred-id'
+                git url: 'https://github.com/sumrak667/final-devops.git', credentialsId: 'github-cred-id'
             }
         }
 
@@ -44,8 +41,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    docker.withRegistry('https://docker.io', DOCKER_HUB_CREDENTIALS) {
-                        // Указываем конкретный Dockerfile
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-cred-id') {
                         def appImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile_AzamatM .")
                         appImage.push()
                     }
@@ -59,10 +55,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo 'Build, test and Docker push successful!'
+            echo "Build and Docker push succeeded!"
         }
         failure {
-            echo 'Build failed!'
+            echo "Build failed!"
         }
     }
 }
