@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS = 'github-creds'
-        DOCKER_CREDENTIALS = 'docker-creds'
+        GIT_CREDENTIALS = 'bfc383d7-09f2-49c0-934d-e1fdf55640be'
+        DOCKER_CREDENTIALS = 'b61eea03-67d9-41ed-bed1-9e921eace337'
         DOCKER_REGISTRY = 'docker.io'
         IMAGE_NAME = 'sumrak667/my-app'
     }
@@ -16,7 +16,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/sumrak667/final-devops.git', credentialsId: "${GIT_CREDENTIALS}"
+                git branch: 'main', url: 'https://github.com/sumrak667/final-devops.git', credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
