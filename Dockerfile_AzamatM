@@ -2,10 +2,10 @@
 FROM gradle:8.2-jdk17 AS build
 WORKDIR /app
 
-# Копируем только содержимое текущей папки (в Jenkins это app/)
-COPY --chown=gradle:gradle . .
+# Копируем папку app внутрь контейнера
+COPY --chown=gradle:gradle app/ .
 
-# Делаем gradlew исполняемым и собираем проект без daemon
+# Делаем gradlew исполняемым и собираем проект
 RUN chmod +x gradlew
 RUN ./gradlew build --no-daemon
 
@@ -13,7 +13,7 @@ RUN ./gradlew build --no-daemon
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Копируем все JAR из build/libs
+# Копируем JAR из build/libs
 COPY --from=build /app/build/libs/ /app/
 
 # Создаем пользователя для запуска приложения
@@ -26,5 +26,5 @@ EXPOSE 8080
 # HEALTHCHECK
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Команда запуска приложения (замени на реальное имя jar)
+# Команда запуска приложения
 ENTRYPOINT ["java","-jar","/app/demo-1.0.0.jar"]

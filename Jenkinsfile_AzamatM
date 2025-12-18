@@ -45,7 +45,8 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('https://docker.io', DOCKER_HUB_CREDENTIALS) {
-                        def appImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile_AzamatM .")
+                        // Строим образ из корня, где лежит Dockerfile
+                        def appImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f Dockerfile .")
                         appImage.push()
                     }
                 }
