@@ -9,8 +9,8 @@ pipeline {
     }
 
     options {
-        skipDefaultCheckout() // Не делать автоматический checkout
-        timestamps()          // Время в логах
+        skipDefaultCheckout()
+        timestamps()
     }
 
     stages {
@@ -23,7 +23,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir('app') {
-                    sh 'chmod +x gradlew'       // даём права на выполнение
+                    sh 'chmod +x gradlew'
                     sh './gradlew clean build'
                 }
             }
@@ -50,7 +50,8 @@ pipeline {
                 script {
                     def imageTag = "${env.BUILD_NUMBER}"
                     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS}") {
-                        def appImage = docker.build("${IMAGE_NAME}:${imageTag}")
+                        // Указываем контекст app и имя Dockerfile
+                        def appImage = docker.build("${IMAGE_NAME}:${imageTag}", "app -f Dockerfile_AzamatM")
                         appImage.push()
                     }
                 }
